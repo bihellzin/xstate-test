@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>XState Traffic Light</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
+      }
+      #traffic-light {
+        width: 120px;
+        height: 350px;
+        background-color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-around;
+        padding: 15px;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .light {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        opacity: 0.3;
+        transition: opacity 0.5s ease;
+      }
+      .red {
+        background-color: red;
+      }
+      .yellow {
+        background-color: yellow;
+      }
+      .green {
+        background-color: green;
+      }
+      .active {
+        opacity: 1;
+      }
+      #status {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div id="traffic-light">
+        <div class="light red"></div>
+        <div class="light yellow"></div>
+        <div class="light green"></div>
+      </div>
+      <div id="status">Initializing...</div>
+      <button id="on">ON</button>
+      <button id="off">OFF</button>
+    </div>
+
+    <script type="module">
+      import {
+        createMachine,
+        interpret,
+      } from "https://unpkg.com/xstate@4/dist/xstate.web.js";
+      const onButton = document.querySelector("#on");
+      const offButton = document.querySelector("#off");
+
+      const trafficLightMachine = createMachine({
+        id: "trafficLight",
+        initial: "off",
+        states: {
+          off: {
+            on: {
+              TURN_ON: "on",
+            },
+          },
+          on: {
+            initial: "red",
+            states: {
+              red: {
+                after: {
+                  5000: { target: "green" },
+                },
+              },
+              yellow: {
+                after: {
+                  2000: { target: "red" },
+                },
+              },
+              green: {
+                after: {
+                  7000: { target: "yellow" },
+                },
+              },
+            },
+            on: {
+              TURN_OFF: "off",
+            },
+          },
+        },
+      });
+
+      const redLight = document.querySelector(".light.red");
+      const yellowLight = document.querySelector(".light.yellow");
+      const greenLight = document.querySelector(".light.green");
+      const statusDisplay = document.getElementById("status");
+
+      const trafficLightService = interpret(trafficLightMachine)
+        .onTransition((state) => {
+          redLight.classList.remove("active");
+          yellowLight.classList.remove("active");
+          greenLight.classList.remove("active");
+          if (state.value["on"]) {
+            switch (state.value["on"]) {
+              case "red":
+                redLight.classList.add("active");
+                statusDisplay.textContent = "Stop (Red Light)";
+                break;
+              case "yellow":
+                yellowLight.classList.add("active");
+                statusDisplay.textContent = "Caution (Yellow Light)";
+                break;
+              case "green":
+                greenLight.classList.add("active");
+                statusDisplay.textContent = "Go (Green Light)";
+                break;
+            }
+          }
+
+          if (state.value === "off") {
+            statusDisplay.textContent = "Traffic light out of service";
+          }
+        })
+        .start();
+
+      onButton.addEventListener("click", () => {
+        trafficLightService.send("TURN_ON");
+      });
+
+      offButton.addEventListener("click", () => {
+        trafficLightService.send("TURN_OFF");
+      });
+    </script>
+  </body>
+</html>
